@@ -70,6 +70,14 @@ jobs:
             if [ -z "$BASE_REF" ]; then BASE_REF="main"; fi
             git fetch origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
             diff-cover coverage.xml --compare-branch="origin/$BASE_REF" --fail-under=90
+        - name: Upload coverage artifact
+          if: |
+            runner.os != 'Windows' && matrix.python_version == '3.12' && matrix.node_version == '20.14' &&
+            (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+          uses: actions/upload-artifact@v7
+          with:
+            name: coverage-report-python
+            path: coverage.xml
         - name: Run E2E tests with Playwright
           id: e2e
           if: runner.os != 'Windows'
@@ -82,3 +90,21 @@ jobs:
           with:
             name: playwright-traces${{ matrix.python_version }}
             path: test-results
+
+  upload-coverage-python:
+    needs: test_package
+    if: ${{ !cancelled() && needs.test_package.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      code-quality: write
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-report-python
+      - uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage-agent
