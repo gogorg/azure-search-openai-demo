@@ -20,3 +20,8 @@ jobs:
                 cd ./app/frontend
                 npm install
                 npx prettier --check .
+    dep-scan:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Dependency Review
+          uses: actions/dependency-review-action@v5.0.0
